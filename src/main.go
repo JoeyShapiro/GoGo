@@ -6,10 +6,10 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -108,7 +108,16 @@ type model struct {
 	bg        string
 	txtStyle  lipgloss.Style
 	quitStyle lipgloss.Style
+	Board     []Cell
 }
+
+type Cell int
+
+const (
+	Empty Cell = iota
+	White
+	Black
+)
 
 func (m model) Init() tea.Cmd {
 	return nil
@@ -119,6 +128,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+		m.Board = make([]Cell, m.width*m.height)
+
+		// make some random cells
+		for i := 0; i < len(m.Board); i++ {
+			if i%2 == 0 {
+				m.Board[i] = White
+			} else if i%3 == 0 {
+				m.Board[i] = Black
+			} else {
+				m.Board[i] = Empty
+			}
+		}
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -129,6 +151,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := fmt.Sprintf("Your term is %s\nYour window size is %dx%d\nBackground: %s\nColor Profile: %s", m.term, m.width, m.height, m.bg, m.profile)
-	return m.txtStyle.Render(s) + "\n\n" + m.quitStyle.Render("Press 'q' to quit\n")
+	var b strings.Builder
+	for i := range m.Board {
+		if i > 0 && i%m.width == 0 && i < len(m.Board)-1 {
+			b.WriteRune('\n')
+		}
+		switch m.Board[i] {
+		case Empty:
+			b.WriteString(m.txtStyle.Background(lipgloss.Color("#af875f")).Foreground(lipgloss.Color("#000000")).Render("┼"))
+		case White:
+			b.WriteString(m.txtStyle.Background(lipgloss.Color("#af875f")).Foreground(lipgloss.Color("#ffffff")).Render("●"))
+		case Black:
+			b.WriteString(m.quitStyle.Background(lipgloss.Color("#af875f")).Foreground(lipgloss.Color("#000000")).Render("●"))
+		default:
+			b.WriteString(" ")
+		}
+	}
+
+	return b.String()
 }
