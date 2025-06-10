@@ -186,10 +186,21 @@ func (m model) View() string {
 	cursorBlack := background.Foreground(lipgloss.Color("#000000")).Render("○")
 	cursorWhite := background.Foreground(lipgloss.Color("#ffffff")).Render("○")
 
+	b.WriteRune(' ')
+	for i := range BOARD_SIZE {
+		b.WriteRune(rune(i + 65))
+	}
+	b.WriteRune('\n')
+	b.WriteRune(rune(1 + 48))
 	for i := range m.Board {
 		if i > 0 && i%BOARD_SIZE == 0 && i < len(m.Board)-1 {
 			b.WriteRune('\n')
+			b.WriteRune(rune(i/BOARD_SIZE + 1 + 48))
 		}
+		// TODO
+		// if i > 0 && i%BOARD_SIZE == BOARD_SIZE-1 && i < len(m.Board)-1 {
+		// 	b.WriteRune(rune(i/BOARD_SIZE + 1 + 48))
+		// }
 
 		if i == m.Cursor {
 			switch m.Player {
@@ -217,6 +228,12 @@ func (m model) View() string {
 				b.WriteString(" ")
 			}
 		}
+	}
+	b.WriteRune(' ')
+	b.WriteRune('\n')
+	b.WriteRune(' ')
+	for i := range BOARD_SIZE {
+		b.WriteRune(rune(i + 65))
 	}
 
 	return b.String()
