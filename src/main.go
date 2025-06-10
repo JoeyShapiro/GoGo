@@ -109,6 +109,9 @@ type model struct {
 	txtStyle  lipgloss.Style
 	quitStyle lipgloss.Style
 	Board     []Cell
+	Cursor    int
+	Last      int
+	Player    Cell
 }
 
 type Cell int
@@ -130,21 +133,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.Board = make([]Cell, m.width*m.height)
 
-		// make some random cells
-		for i := 0; i < len(m.Board); i++ {
-			if i%2 == 0 {
-				m.Board[i] = White
-			} else if i%3 == 0 {
-				m.Board[i] = Black
-			} else {
-				m.Board[i] = Empty
-			}
-		}
+		// // make some random cells
+		// for i := 0; i < len(m.Board); i++ {
+		// 	if i%2 == 0 {
+		// 		m.Board[i] = White
+		// 	} else if i%3 == 0 {
+		// 		m.Board[i] = Black
+		// 	} else {
+		// 		m.Board[i] = Empty
+		// 	}
+		// }
+
+		m.Cursor = -1
+		m.Last = -1
+		m.Player = White
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "a":
+			if m.Cursor > 0 {
+				m.Cursor--
+			}
+		case "d":
+			if m.Cursor < len(m.Board)-1 {
+				m.Cursor++
+			}
+		case "w":
+			if m.Cursor-m.width >= 0 {
+				m.Cursor -= m.width
+			}
+		case "s":
+			if m.Cursor+m.width < len(m.Board) {
+				m.Cursor += m.width
+			}
 		}
 	}
 	return m, nil
@@ -152,19 +175,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var b strings.Builder
+	background := m.txtStyle.Background(lipgloss.Color("#af875f"))
+	empty := background.Foreground(lipgloss.Color("#000000")).Render("┼")
+	white := background.Foreground(lipgloss.Color("#ffffff")).Render("●")
+	black := background.Foreground(lipgloss.Color("#000000")).Render("●")
+	// last peice and currently selected will be cursor
+	cursorBlack := background.Foreground(lipgloss.Color("#000000")).Render("○")
+	cursorWhite := background.Foreground(lipgloss.Color("#ffffff")).Render("○")
+
 	for i := range m.Board {
 		if i > 0 && i%m.width == 0 && i < len(m.Board)-1 {
 			b.WriteRune('\n')
 		}
-		switch m.Board[i] {
-		case Empty:
-			b.WriteString(m.txtStyle.Background(lipgloss.Color("#af875f")).Foreground(lipgloss.Color("#000000")).Render("┼"))
-		case White:
-			b.WriteString(m.txtStyle.Background(lipgloss.Color("#af875f")).Foreground(lipgloss.Color("#ffffff")).Render("●"))
-		case Black:
-			b.WriteString(m.quitStyle.Background(lipgloss.Color("#af875f")).Foreground(lipgloss.Color("#000000")).Render("●"))
-		default:
-			b.WriteString(" ")
+
+		if i == m.Cursor {
+			switch m.Player {
+			case White:
+				b.WriteString(cursorWhite)
+			case Black:
+				b.WriteString(cursorBlack)
+			}
+		} else if i == m.Last {
+			switch m.Board[i] {
+			case White:
+				b.WriteString(cursorWhite)
+			case Black:
+				b.WriteString(cursorBlack)
+			}
+		} else {
+			switch m.Board[i] {
+			case Empty:
+				b.WriteString(empty)
+			case White:
+				b.WriteString(white)
+			case Black:
+				b.WriteString(black)
+			default:
+				b.WriteString(" ")
+			}
 		}
 	}
 
