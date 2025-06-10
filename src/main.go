@@ -114,6 +114,9 @@ type model struct {
 	Player    Cell
 }
 
+const BOARD_SIZE = 9 // Go board is 19x19
+// 13 9
+
 type Cell int
 
 const (
@@ -131,7 +134,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.Board = make([]Cell, m.width*m.height)
+		m.Board = make([]Cell, BOARD_SIZE*BOARD_SIZE)
 
 		// // make some random cells
 		// for i := 0; i < len(m.Board); i++ {
@@ -152,21 +155,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
-		case "a":
+		case "a", "left":
 			if m.Cursor > 0 {
 				m.Cursor--
 			}
-		case "d":
+		case "d", "right":
 			if m.Cursor < len(m.Board)-1 {
 				m.Cursor++
 			}
-		case "w":
-			if m.Cursor-m.width >= 0 {
-				m.Cursor -= m.width
+		case "w", "up":
+			if m.Cursor-BOARD_SIZE >= 0 {
+				m.Cursor -= BOARD_SIZE
 			}
-		case "s":
-			if m.Cursor+m.width < len(m.Board) {
-				m.Cursor += m.width
+		case "s", "down":
+			if m.Cursor+BOARD_SIZE < len(m.Board) {
+				m.Cursor += BOARD_SIZE
 			}
 		}
 	}
@@ -184,7 +187,7 @@ func (m model) View() string {
 	cursorWhite := background.Foreground(lipgloss.Color("#ffffff")).Render("○")
 
 	for i := range m.Board {
-		if i > 0 && i%m.width == 0 && i < len(m.Board)-1 {
+		if i > 0 && i%BOARD_SIZE == 0 && i < len(m.Board)-1 {
 			b.WriteRune('\n')
 		}
 
