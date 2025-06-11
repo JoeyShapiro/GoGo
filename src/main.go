@@ -185,17 +185,41 @@ func (m model) View() string {
 	// last peice and currently selected will be cursor
 	cursorBlack := background.Foreground(lipgloss.Color("#000000")).Render("○")
 	cursorWhite := background.Foreground(lipgloss.Color("#ffffff")).Render("○")
+	selected := m.txtStyle.Foreground(lipgloss.Color("#ff0000"))
+
+	x := -1
+	y := -1
+	if m.Cursor > -1 {
+		x = m.Cursor % BOARD_SIZE
+		y = m.Cursor/BOARD_SIZE + 1
+	}
 
 	b.WriteRune(' ')
 	for i := range BOARD_SIZE {
-		b.WriteRune(rune(i + 65))
+		margin := rune(i + 65)
+		if x > -1 && i == x {
+			b.WriteString(selected.Render(string(margin)))
+		} else {
+			b.WriteRune(margin)
+		}
 	}
 	b.WriteRune('\n')
-	b.WriteRune(rune(1 + 48))
+	margin := rune(1 + 48)
+	if y == 1 {
+		b.WriteString(selected.Render(string(margin)))
+	} else {
+		b.WriteRune(margin)
+	}
 	for i := range m.Board {
 		if i > 0 && i%BOARD_SIZE == 0 && i < len(m.Board)-1 {
 			b.WriteRune('\n')
-			b.WriteRune(rune(i/BOARD_SIZE + 1 + 48))
+			row := i/BOARD_SIZE + 1
+			margin := rune(row + 48)
+			if y > -1 && row == y {
+				b.WriteString(selected.Render(string(margin)))
+			} else {
+				b.WriteRune(margin)
+			}
 		}
 		// TODO
 		// if i > 0 && i%BOARD_SIZE == BOARD_SIZE-1 && i < len(m.Board)-1 {
@@ -233,7 +257,12 @@ func (m model) View() string {
 	b.WriteRune('\n')
 	b.WriteRune(' ')
 	for i := range BOARD_SIZE {
-		b.WriteRune(rune(i + 65))
+		margin := rune(i + 65)
+		if x > -1 && i == x {
+			b.WriteString(selected.Render(string(margin)))
+		} else {
+			b.WriteRune(margin)
+		}
 	}
 
 	return b.String()
