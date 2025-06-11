@@ -194,6 +194,7 @@ func (m model) View() string {
 		y = m.Cursor/BOARD_SIZE + 1
 	}
 
+	// top margin coordinates
 	b.WriteRune(' ')
 	for i := range BOARD_SIZE {
 		margin := rune(i + 65)
@@ -203,15 +204,9 @@ func (m model) View() string {
 			b.WriteRune(margin)
 		}
 	}
-	b.WriteRune('\n')
-	margin := rune(1 + 48)
-	if y == 1 {
-		b.WriteString(selected.Render(string(margin)))
-	} else {
-		b.WriteRune(margin)
-	}
 	for i := range m.Board {
-		if i > 0 && i%BOARD_SIZE == 0 && i < len(m.Board)-1 {
+		// left margin coordinates
+		if i%BOARD_SIZE == 0 {
 			b.WriteRune('\n')
 			row := i/BOARD_SIZE + 1
 			margin := rune(row + 48)
@@ -221,10 +216,6 @@ func (m model) View() string {
 				b.WriteRune(margin)
 			}
 		}
-		// TODO
-		// if i > 0 && i%BOARD_SIZE == BOARD_SIZE-1 && i < len(m.Board)-1 {
-		// 	b.WriteRune(rune(i/BOARD_SIZE + 1 + 48))
-		// }
 
 		if i == m.Cursor {
 			switch m.Player {
@@ -252,9 +243,21 @@ func (m model) View() string {
 				b.WriteString(" ")
 			}
 		}
+
+		// right margin coordinates
+		if i%BOARD_SIZE == BOARD_SIZE-1 {
+			row := i/BOARD_SIZE + 1
+			margin := rune(row + 48)
+			if y > -1 && row == y {
+				b.WriteString(selected.Render(string(margin)))
+			} else {
+				b.WriteRune(margin)
+			}
+		}
 	}
 	b.WriteRune(' ')
 	b.WriteRune('\n')
+	// bottom margin coordinates
 	b.WriteRune(' ')
 	for i := range BOARD_SIZE {
 		margin := rune(i + 65)
