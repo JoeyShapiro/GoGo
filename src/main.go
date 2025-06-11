@@ -112,6 +112,7 @@ type model struct {
 	Cursor    int
 	Last      int
 	Player    Cell
+	Turn      Cell
 }
 
 const BOARD_SIZE = 9 // Go board is 19x19
@@ -150,26 +151,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Cursor = -1
 		m.Last = -1
 		m.Player = White
+		m.Turn = White
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "a", "left":
-			if m.Cursor > 0 {
+			if m.Turn == m.Player && m.Cursor > 0 {
 				m.Cursor--
 			}
 		case "d", "right":
-			if m.Cursor < len(m.Board)-1 {
+			if m.Turn == m.Player && m.Cursor < len(m.Board)-1 {
 				m.Cursor++
 			}
 		case "w", "up":
-			if m.Cursor-BOARD_SIZE >= 0 {
+			if m.Turn == m.Player && m.Cursor-BOARD_SIZE >= 0 {
 				m.Cursor -= BOARD_SIZE
 			}
 		case "s", "down":
-			if m.Cursor+BOARD_SIZE < len(m.Board) {
+			if m.Turn == m.Player && m.Cursor+BOARD_SIZE < len(m.Board) {
 				m.Cursor += BOARD_SIZE
+			}
+		case " ":
+			if m.Turn == m.Player && m.Cursor >= 0 && m.Cursor < len(m.Board) {
+				m.Board[m.Cursor] = m.Player
+				m.Last = m.Cursor
+				if m.Player == White {
+					m.Turn = Black
+				} else {
+					m.Turn = White
+				}
 			}
 		}
 	}
