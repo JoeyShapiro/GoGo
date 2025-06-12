@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	host = "localhost"
+	host = "0.0.0.0"
 	port = "23234"
 )
 
@@ -172,6 +172,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "s", "down":
 			if m.Turn == m.Player && m.Cursor+BOARD_SIZE < len(m.Board) {
 				m.Cursor += BOARD_SIZE
+			}
+		case "tab": // tab to pass
+			if m.Player == White {
+				m.Player = Black
+			} else {
+				m.Player = White
 			}
 		case " ":
 			if m.Turn == m.Player && m.Cursor >= 0 && m.Cursor < len(m.Board) {
