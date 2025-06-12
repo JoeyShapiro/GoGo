@@ -28,6 +28,10 @@ const (
 	port = "23234"
 )
 
+var (
+	game = NewGame("1")
+)
+
 func main() {
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
@@ -95,6 +99,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		bg:        bg,
 		txtStyle:  txtStyle,
 		quitStyle: quitStyle,
+		Player:    White,
 	}
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
@@ -108,12 +113,38 @@ type model struct {
 	bg        string
 	txtStyle  lipgloss.Style
 	quitStyle lipgloss.Style
-	Board     []Cell
-	Cursor    int
-	Last      int
+	GameId    string
 	Player    Cell
-	Turn      Cell
 }
+
+type Game struct {
+	Id            string
+	Board         []Cell
+	Cursor        int
+	Last          int
+	Player        Cell
+	WhiteCaptures int
+	BlackCaptures int
+}
+
+func NewGame(id string) Game {
+	return Game{
+		Id:            id,
+		Board:         make([]Cell, BOARD_SIZE*BOARD_SIZE),
+		Cursor:        -1,
+		Last:          -1,
+		Player:        White,
+		WhiteCaptures: 0,
+		BlackCaptures: 0,
+	}
+}
+
+// could maybe have a history of all moves.
+// but i would need to compute every turn, and check for captures, etc.
+// and i would need the board on the frontend anyway
+// only need to compute the next turn, but still would need the board
+// doesnt save me, and might use a lot of memory
+// just dump it in the db
 
 const BOARD_SIZE = 9 // Go board is 19x19
 // 13 9
@@ -135,43 +166,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.Board = make([]Cell, BOARD_SIZE*BOARD_SIZE)
-
-		// // make some random cells
-		// for i := 0; i < len(m.Board); i++ {
-		// 	if i%2 == 0 {
-		// 		m.Board[i] = White
-		// 	} else if i%3 == 0 {
-		// 		m.Board[i] = Black
-		// 	} else {
-		// 		m.Board[i] = Empty
-		// 	}
-		// }
-
-		m.Cursor = -1
-		m.Last = -1
-		m.Player = White
-		m.Turn = White
-
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "a", "left":
-			if m.Turn == m.Player && m.Cursor > 0 {
-				m.Cursor--
+			if game.Player == m.Player && game.Cursor > 0 {
+				game.Cursor--
 			}
 		case "d", "right":
-			if m.Turn == m.Player && m.Cursor < len(m.Board)-1 {
-				m.Cursor++
+			if game.Player == m.Player && game.Cursor < len(game.Board)-1 {
+				game.Cursor++
 			}
 		case "w", "up":
-			if m.Turn == m.Player && m.Cursor-BOARD_SIZE >= 0 {
-				m.Cursor -= BOARD_SIZE
+			if game.Player == m.Player && game.Cursor-BOARD_SIZE >= 0 {
+				game.Cursor -= BOARD_SIZE
 			}
 		case "s", "down":
-			if m.Turn == m.Player && m.Cursor+BOARD_SIZE < len(m.Board) {
-				m.Cursor += BOARD_SIZE
+			if game.Player == m.Player && game.Cursor+BOARD_SIZE < len(game.Board) {
+				game.Cursor += BOARD_SIZE
 			}
 		case "tab": // tab to pass
 			if m.Player == White {
@@ -180,17 +193,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Player = White
 			}
 		case " ":
-			if m.Turn == m.Player && m.Cursor >= 0 && m.Cursor < len(m.Board) {
-				m.Board[m.Cursor] = m.Player
-				m.Last = m.Cursor
-				if m.Player == White {
-					m.Turn = Black
+			if game.Player == m.Player && game.Cursor >= 0 && game.Cursor < len(game.Board) {
+				game.Board[game.Cursor] = game.Player
+				game.Last = game.Cursor
+				if game.Player == White {
+					game.Player = Black
 				} else {
-					m.Turn = White
+					game.Player = White
 				}
 			}
 		}
 	}
+
 	return m, nil
 }
 
@@ -207,9 +221,9 @@ func (m model) View() string {
 
 	x := -1
 	y := -1
-	if m.Cursor > -1 {
-		x = m.Cursor % BOARD_SIZE
-		y = m.Cursor/BOARD_SIZE + 1
+	if game.Cursor > -1 {
+		x = game.Cursor % BOARD_SIZE
+		y = game.Cursor/BOARD_SIZE + 1
 	}
 
 	// top margin coordinates
@@ -222,7 +236,7 @@ func (m model) View() string {
 			b.WriteRune(margin)
 		}
 	}
-	for i := range m.Board {
+	for i := range game.Board {
 		// left margin coordinates
 		if i%BOARD_SIZE == 0 {
 			b.WriteRune('\n')
@@ -235,22 +249,22 @@ func (m model) View() string {
 			}
 		}
 
-		if i == m.Cursor {
-			switch m.Player {
+		if i == game.Cursor {
+			switch game.Player {
 			case White:
 				b.WriteString(cursorWhite)
 			case Black:
 				b.WriteString(cursorBlack)
 			}
-		} else if i == m.Last {
-			switch m.Board[i] {
+		} else if i == game.Last {
+			switch game.Board[i] {
 			case White:
 				b.WriteString(cursorWhite)
 			case Black:
 				b.WriteString(cursorBlack)
 			}
 		} else {
-			switch m.Board[i] {
+			switch game.Board[i] {
 			case Empty:
 				b.WriteString(empty)
 			case White:
