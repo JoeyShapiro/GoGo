@@ -100,7 +100,13 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		txtStyle:  txtStyle,
 		quitStyle: quitStyle,
 		Player:    White,
+		Conn:      make(chan tea.Msg, 1),
+		Id:        game.Players,
 	}
+
+	game.Players++
+	game.Conns = append(game.Conns, &m.Conn)
+
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
 
@@ -115,6 +121,15 @@ type model struct {
 	quitStyle lipgloss.Style
 	GameId    string
 	Player    Cell
+	Conn      chan tea.Msg
+	Id        int
+}
+
+func listenCmd(m model) tea.Cmd {
+	return func() tea.Msg {
+		msg := <-m.Conn
+		return msg
+	}
 }
 
 type Game struct {
@@ -125,6 +140,8 @@ type Game struct {
 	Player        Cell
 	WhiteCaptures int
 	BlackCaptures int
+	Players       int
+	Conns         []*chan tea.Msg
 }
 
 func NewGame(id string) Game {
@@ -136,6 +153,7 @@ func NewGame(id string) Game {
 		Player:        White,
 		WhiteCaptures: 0,
 		BlackCaptures: 0,
+		Players:       0,
 	}
 }
 
@@ -157,12 +175,18 @@ const (
 	Black
 )
 
+type SendMsg struct {
+	Id int
+}
+
 func (m model) Init() tea.Cmd {
 	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case SendMsg:
+		return m, listenCmd(m)
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
@@ -205,7 +229,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	// send message to the channel
+	for i, conn := range game.Conns {
+		if i == m.Id {
+			continue
+		}
+
+		*conn <- SendMsg{Id: m.Id}
+	}
+
+	return m, listenCmd(m)
 }
 
 func (m model) View() string {
