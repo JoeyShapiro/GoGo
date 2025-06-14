@@ -91,6 +91,17 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		bg = "dark"
 	}
 
+	var piece Cell
+	switch game.Players {
+	case 0:
+		piece = White
+	case 1:
+		piece = Black
+	default:
+		log.Error("Too many players connected", "players", game.Players)
+		return nil, []tea.ProgramOption{tea.WithAltScreen()}
+	}
+
 	m := model{
 		term:      pty.Term,
 		profile:   renderer.ColorProfile().Name(),
@@ -99,7 +110,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		bg:        bg,
 		txtStyle:  txtStyle,
 		quitStyle: quitStyle,
-		Player:    White,
+		Player:    piece,
 		Conn:      make(chan tea.Msg, 1),
 		Id:        game.Players,
 	}
