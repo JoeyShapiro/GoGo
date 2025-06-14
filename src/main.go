@@ -46,6 +46,22 @@ func main() {
 		log.Error("Could not start server", "error", err)
 	}
 
+	go func() {
+		for {
+			msg := <-game.Conn
+			switch msg := msg.(type) {
+			case SendMsg:
+				for i := range game.Players {
+					if i != msg.Id {
+						*game.PlayerConns[i] <- SendMsg{Id: i}
+					}
+				}
+			default:
+				log.Warn("Unknown message type", "msg", msg)
+			}
+		}
+	}()
+
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	log.Info("Starting SSH server", "host", host, "port", port)
@@ -116,7 +132,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	}
 
 	game.Players++
-	game.Conns = append(game.Conns, &m.Conn)
+	game.PlayerConns = append(game.PlayerConns, &m.Conn)
 
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }
@@ -152,7 +168,8 @@ type Game struct {
 	WhiteCaptures int
 	BlackCaptures int
 	Players       int
-	Conns         []*chan tea.Msg
+	Conn          chan tea.Msg
+	PlayerConns   []*chan tea.Msg
 }
 
 func NewGame(id string) Game {
@@ -165,6 +182,7 @@ func NewGame(id string) Game {
 		WhiteCaptures: 0,
 		BlackCaptures: 0,
 		Players:       0,
+		Conn:          make(chan tea.Msg, 3),
 	}
 }
 
@@ -240,14 +258,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// send message to the channel
-	for i, conn := range game.Conns {
-		if i == m.Id {
-			continue
-		}
-
-		*conn <- SendMsg{Id: m.Id}
-	}
+	game.Conn <- SendMsg{Id: m.Id}
 
 	return m, listenCmd(m)
 }
