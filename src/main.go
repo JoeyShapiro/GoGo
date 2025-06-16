@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	_ "embed"
 	"errors"
 	"net"
 	"os"
@@ -18,6 +20,8 @@ import (
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/logging"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
@@ -29,7 +33,21 @@ var (
 	game = NewGame("1")
 )
 
+//go:embed gogo.sql
+var gogodotsql string
+
 func main() {
+	// Open database
+	db, err := sql.Open("sqlite3", "./gogo.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	if err := initdb(db); err != nil {
+		log.Fatal("Failed to initialize database", "error", err)
+	}
+
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
@@ -76,6 +94,11 @@ func main() {
 	if err := s.Shutdown(ctx); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 		log.Error("Could not stop server", "error", err)
 	}
+}
+
+func initdb(db *sql.DB) error {
+	_, err := db.Exec(gogodotsql)
+	return err
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {

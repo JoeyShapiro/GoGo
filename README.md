@@ -16,3 +16,10 @@ https://www.gnu.org/software/gnugo/download.html
 dont think i need the whole protocol. at least not now
 maybe for ai
 but just moves can be stored special, and hint at that
+
+storing row/col as ints
+could use 1 string, but not as smart for parsing/using
+could store as char/number, but still not as smart
+
+not really using protocol, but dont seem to need it
+will use it i guesss when making ai interaction
