@@ -29,8 +29,10 @@ const (
 	port = "23234"
 )
 
+// TODO add more games some way, then interact with them
+
 var (
-	game = NewGame("1")
+	game Game
 )
 
 //go:embed gogo.sql
@@ -47,6 +49,8 @@ func main() {
 	if err := initdb(db); err != nil {
 		log.Fatal("Failed to initialize database", "error", err)
 	}
+
+	game = NewGame("1", db)
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
@@ -165,9 +169,24 @@ type Game struct {
 	Players       int
 	Conn          chan tea.Msg
 	PlayerConns   []*chan tea.Msg
+	Moves         []Move
 }
 
-func NewGame(id string) Game {
+type Move struct {
+	Turn   int
+	Player Cell
+	NRow   int
+	NCol   int
+	Ctime  uint64
+}
+
+func NewGame(id string, db *sql.DB) Game {
+	_, err := db.Exec("INSERT INTO games (id, bsize, white, black, creation) VALUES (?, ?, ?, ?, ?)",
+		id, BOARD_SIZE, "White", "Black", time.Now().UTC().Unix())
+	if err != nil {
+		return Game{}
+	}
+
 	return Game{
 		Id:            id,
 		Board:         make([]Cell, BOARD_SIZE*BOARD_SIZE),
@@ -179,6 +198,30 @@ func NewGame(id string) Game {
 		Players:       0,
 		Conn:          make(chan tea.Msg, 3),
 	}
+}
+
+func EndGame(id string, db *sql.DB) error {
+	for _, move := range game.Moves {
+		_, err := db.Exec("INSERT INTO moves (game_id, turn, player, nrow, ncol, ctime) VALUES (?, ?, ?, ?, ?, ?)",
+			id, move.Turn, move.Player, move.NRow, move.NCol, move.Ctime)
+		if err != nil {
+			return err
+		}
+	}
+
+	game.Conn <- EndMsg{
+		GameId: id,
+		Winner: game.Player,
+	}
+
+	_, err := db.Exec("UPDATE games SET winner = ?, ended = ? WHERE id = ?", game.Player, time.Now().UTC().Unix(), id)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Game ended", "game_id", id, "winner", game.Player)
+
+	return nil
 }
 
 const BOARD_SIZE = 9 // Go board is 19x19
@@ -194,6 +237,11 @@ const (
 
 type SendMsg struct {
 	Id int
+}
+
+type EndMsg struct {
+	GameId string
+	Winner Cell
 }
 
 func (m model) Init() tea.Cmd {
@@ -236,6 +284,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ":
 			if game.Player == m.Player && game.Cursor >= 0 && game.Cursor < len(game.Board) {
 				game.Board[game.Cursor] = game.Player
+				game.Moves = append(game.Moves, Move{
+					Turn:   len(game.Moves),
+					Player: game.Player,
+					NRow:   game.Cursor / BOARD_SIZE,
+					NCol:   game.Cursor % BOARD_SIZE,
+					Ctime:  uint64(time.Now().UTC().Unix()),
+				})
+
 				game.Last = game.Cursor
 				if game.Player == White {
 					game.Player = Black

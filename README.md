@@ -23,3 +23,5 @@ could store as char/number, but still not as smart
 
 not really using protocol, but dont seem to need it
 will use it i guesss when making ai interaction
+
+GORM, ent, but after looking, base is good enough
