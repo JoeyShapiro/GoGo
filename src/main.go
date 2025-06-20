@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
@@ -32,7 +34,7 @@ const (
 // TODO add more games some way, then interact with them
 
 var (
-	game Game
+	games map[string]*Game
 )
 
 //go:embed gogo.sql
@@ -49,8 +51,11 @@ func main() {
 	if err := initdb(db); err != nil {
 		log.Fatal("Failed to initialize database", "error", err)
 	}
+	games = make(map[string]*Game)
 
-	game = NewGame("1", db)
+	uuid := uuid.New().String()
+	game := NewGame(uuid, db)
+	games[uuid] = &game
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
@@ -112,6 +117,13 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	renderer := bubbletea.MakeRenderer(s)
 	txtStyle := renderer.NewStyle()
 
+	gameId := uuid.New().String()
+	game, exists := games[gameId]
+	if !exists {
+		log.Error("Game not found", "game_id", gameId)
+		return nil, []tea.ProgramOption{tea.WithAltScreen()}
+	}
+
 	var piece Cell
 	switch game.Players {
 	case 0:
@@ -131,6 +143,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		Player:   piece,
 		Conn:     make(chan tea.Msg, 1),
 		Id:       game.Players,
+		GameId:   gameId,
 	}
 
 	game.Players++
@@ -201,6 +214,11 @@ func NewGame(id string, db *sql.DB) Game {
 }
 
 func EndGame(id string, db *sql.DB) error {
+	game, ok := games[id]
+	if !ok {
+		return errors.New("game not found")
+	}
+
 	for _, move := range game.Moves {
 		_, err := db.Exec("INSERT INTO moves (game_id, turn, player, nrow, ncol, ctime) VALUES (?, ?, ?, ?, ?, ?)",
 			id, move.Turn, move.Player, move.NRow, move.NCol, move.Ctime)
@@ -256,6 +274,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.width = msg.Width
 	case tea.KeyMsg:
+		game, ok := games[m.GameId]
+		if !ok {
+			log.Error("Game not found", "game_id", m.GameId)
+			return m, tea.Quit
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -300,14 +324,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-	}
 
-	game.Conn <- SendMsg{Id: m.Id}
+		game.Conn <- SendMsg{Id: m.Id}
+	}
 
 	return m, listenCmd(m)
 }
 
 func (m model) View() string {
+	game, ok := games[m.GameId]
+	if !ok {
+		log.Error("Game not found", "game_id", m.GameId)
+		return "Game not found"
+	}
+
 	var b strings.Builder
 	background := m.txtStyle.Background(lipgloss.Color("#af875f"))
 	empty := background.Foreground(lipgloss.Color("#000000")).Render("┼")

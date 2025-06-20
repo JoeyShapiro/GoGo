@@ -1,4 +1,4 @@
-CREATE TABLE moves (
+CREATE TABLE IF NOT EXISTS moves (
 	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	gameid TEXT NOT NULL, -- the game this move belongs to
 	turn INTEGER NOT NULL,   -- the turn number of the move
@@ -8,7 +8,7 @@ CREATE TABLE moves (
     ctime INTEGER NOT NULL   -- the time of the move (UNIX timestamp)
 );
 
-CREATE TABLE games (
+CREATE TABLE IF NOT EXISTS games (
 	id TEXT NOT NULL PRIMARY KEY,
 	bsize INTEGER NOT NULL,    -- size of the game board
 	white TEXT NOT NULL,       -- name of the white player
