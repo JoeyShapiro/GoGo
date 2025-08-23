@@ -158,6 +158,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 type Game struct {
 	Id            string
 	Board         []Cell
+	BoardSize     int
 	Cursor        int
 	Last          int
 	Player        Cell

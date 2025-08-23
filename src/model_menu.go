@@ -44,39 +44,24 @@ func (i item) Description() string { return i.description }
 func (i item) FilterValue() string { return i.title }
 
 type listKeyMap struct {
-	toggleSpinner    key.Binding
-	toggleTitleBar   key.Binding
-	toggleStatusBar  key.Binding
 	togglePagination key.Binding
-	toggleHelpMenu   key.Binding
-	insertItem       key.Binding
+	createGame       key.Binding
+	refreshGames     key.Binding
 }
 
 func newListKeyMap() *listKeyMap {
 	return &listKeyMap{
-		insertItem: key.NewBinding(
-			key.WithKeys("a"),
-			key.WithHelp("a", "add item"),
-		),
-		toggleSpinner: key.NewBinding(
-			key.WithKeys("s"),
-			key.WithHelp("s", "toggle spinner"),
-		),
-		toggleTitleBar: key.NewBinding(
-			key.WithKeys("T"),
-			key.WithHelp("T", "toggle title"),
-		),
-		toggleStatusBar: key.NewBinding(
-			key.WithKeys("S"),
-			key.WithHelp("S", "toggle status"),
-		),
 		togglePagination: key.NewBinding(
 			key.WithKeys("P"),
 			key.WithHelp("P", "toggle pagination"),
 		),
-		toggleHelpMenu: key.NewBinding(
-			key.WithKeys("H"),
-			key.WithHelp("H", "toggle help"),
+		createGame: key.NewBinding(
+			key.WithKeys(" "),
+			key.WithHelp("C", "create game"),
+		),
+		refreshGames: key.NewBinding(
+			key.WithKeys("R"),
+			key.WithHelp("R", "refresh games"),
 		),
 	}
 }
@@ -91,14 +76,12 @@ func newModel() ModelMenu {
 
 	// Make initial list of items
 	items := []list.Item{}
-	items = append(items, item{
-		title:       "Apples",
-		description: "A sweet red fruit.",
-	})
-	items = append(items, item{
-		title:       "Bananas",
-		description: "A long yellow fruit.",
-	})
+	for _, game := range games {
+		items = append(items, item{
+			title:       game.Id,
+			description: fmt.Sprintf("Players: %d; Turns: %d; Size: %d", game.Players, len(game.Moves), game.BoardSize),
+		})
+	}
 
 	// Setup list
 	delegate := newItemDelegate(delegateKeys)
@@ -107,12 +90,9 @@ func newModel() ModelMenu {
 	gamesList.Styles.Title = titleStyle
 	gamesList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			listKeys.toggleSpinner,
-			listKeys.insertItem,
-			listKeys.toggleTitleBar,
-			listKeys.toggleStatusBar,
 			listKeys.togglePagination,
-			listKeys.toggleHelpMenu,
+			listKeys.createGame,
+			listKeys.refreshGames,
 		}
 	}
 
@@ -142,31 +122,12 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch {
-		case key.Matches(msg, m.keys.toggleSpinner):
-			cmd := m.list.ToggleSpinner()
-			return m, cmd
-
-		case key.Matches(msg, m.keys.toggleTitleBar):
-			v := !m.list.ShowTitle()
-			m.list.SetShowTitle(v)
-			m.list.SetShowFilter(v)
-			m.list.SetFilteringEnabled(v)
-			return m, nil
-
-		case key.Matches(msg, m.keys.toggleStatusBar):
-			m.list.SetShowStatusBar(!m.list.ShowStatusBar())
-			return m, nil
-
 		case key.Matches(msg, m.keys.togglePagination):
 			m.list.SetShowPagination(!m.list.ShowPagination())
 			return m, nil
 
-		case key.Matches(msg, m.keys.toggleHelpMenu):
-			m.list.SetShowHelp(!m.list.ShowHelp())
-			return m, nil
-
-		case key.Matches(msg, m.keys.insertItem):
-			m.delegateKeys.remove.SetEnabled(true)
+		case key.Matches(msg, m.keys.createGame):
+			m.delegateKeys.join.SetEnabled(true)
 			newItem := item{
 				title:       "New Item",
 				description: "This is a new item.",
@@ -174,6 +135,10 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			insCmd := m.list.InsertItem(0, newItem)
 			statusCmd := m.list.NewStatusMessage(statusMessageStyle("Added " + newItem.Title()))
 			return m, tea.Batch(insCmd, statusCmd)
+
+		case key.Matches(msg, m.keys.refreshGames):
+			fmt.Println("Refreshing games...")
+			return m, nil
 		}
 	}
 
