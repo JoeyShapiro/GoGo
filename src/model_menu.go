@@ -9,6 +9,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+	bullet = "•"
+)
+
 type ModelMenu struct {
 	term         string
 	width        int
@@ -20,15 +24,6 @@ type ModelMenu struct {
 	keys         *listKeyMap
 	delegateKeys *delegateKeyMap
 }
-
-var (
-	appStyle = lipgloss.NewStyle().Padding(1, 2)
-
-	titleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#000000")).
-			Background(lipgloss.Color("#25A065")).
-			Padding(0, 1)
-)
 
 type item struct {
 	title       string
@@ -81,7 +76,12 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 	delegate := newItemDelegate(delegateKeys, renderer)
 	gamesList := list.New(items, delegate, 0, 0)
 	gamesList.Title = "Current Games"
-	gamesList.Styles.Title = titleStyle
+	gamesList.SetShowStatusBar(false)
+	gamesList.Styles = listDefaultStyles(renderer)
+	gamesList.Styles.Title = renderer.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
+		Padding(0, 1)
+	gamesList.Help.Styles.ShortKey = renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
 	gamesList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			listKeys.togglePagination,
@@ -98,6 +98,63 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 	}
 }
 
+func listDefaultStyles(r *lipgloss.Renderer) (s list.Styles) {
+	verySubduedColor := lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
+	subduedColor := lipgloss.AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"}
+
+	s.TitleBar = r.NewStyle().Padding(0, 0, 1, 2) //nolint:mnd
+
+	s.Title = r.NewStyle().
+		Background(lipgloss.Color("62")).
+		Foreground(lipgloss.Color("230")).
+		Padding(0, 1)
+
+	s.Spinner = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#8E8E8E", Dark: "#747373"})
+
+	s.FilterPrompt = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
+
+	s.FilterCursor = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"})
+
+	s.DefaultFilterCharacterMatch = r.NewStyle().Underline(true)
+
+	s.StatusBar = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
+		Padding(0, 0, 1, 2) //nolint:mnd
+
+	s.StatusEmpty = r.NewStyle().Foreground(subduedColor)
+
+	s.StatusBarActiveFilter = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+
+	s.StatusBarFilterCount = r.NewStyle().Foreground(verySubduedColor)
+
+	s.NoItems = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#909090", Dark: "#626262"})
+
+	s.ArabicPagination = r.NewStyle().Foreground(subduedColor)
+
+	s.PaginationStyle = r.NewStyle().PaddingLeft(2) //nolint:mnd
+
+	s.HelpStyle = r.NewStyle().Padding(1, 0, 0, 2) //nolint:mnd
+
+	s.ActivePaginationDot = r.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#847A85", Dark: "#979797"}).
+		SetString(bullet)
+
+	s.InactivePaginationDot = r.NewStyle().
+		Foreground(verySubduedColor).
+		SetString(bullet)
+
+	s.DividerDot = r.NewStyle().
+		Foreground(verySubduedColor).
+		SetString(" " + bullet + " ")
+
+	return s
+}
+
 func (m ModelMenu) Init() tea.Cmd {
 	return nil
 }
@@ -107,7 +164,7 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		h, v := appStyle.GetFrameSize()
+		h, v := m.renderer.NewStyle().Padding(1, 2).GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 
 	case tea.KeyMsg:
@@ -150,5 +207,5 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ModelMenu) View() string {
-	return appStyle.Render(m.list.View())
+	return m.renderer.NewStyle().Padding(1, 2).Render(m.list.View())
 }
