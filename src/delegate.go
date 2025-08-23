@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func newItemDelegate(keys *delegateKeyMap) list.DefaultDelegate {
+func newItemDelegate(keys *delegateKeyMap, renderer *lipgloss.Renderer) list.DefaultDelegate {
 	d := list.NewDefaultDelegate()
-	d.Styles = list.NewDefaultItemStyles()
+	d.Styles = DefaultItemStyles(renderer)
 
 	d.UpdateFunc = func(msg tea.Msg, m *list.Model) tea.Cmd {
 		var title string
@@ -24,6 +24,9 @@ func newItemDelegate(keys *delegateKeyMap) list.DefaultDelegate {
 		case tea.KeyMsg:
 			switch {
 			case key.Matches(msg, keys.join):
+				statusMessageStyle := lipgloss.NewStyle().
+					Foreground(lipgloss.AdaptiveColor{Light: "#00623eff", Dark: "#04B575"}).
+					Render
 				return m.NewStatusMessage(statusMessageStyle("You chose " + title))
 			}
 		}
@@ -44,31 +47,31 @@ func newItemDelegate(keys *delegateKeyMap) list.DefaultDelegate {
 	return d
 }
 
-func DefaultItemStyles() (s list.DefaultItemStyles) {
-	s.NormalTitle = lipgloss.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#ffffff"}).
+func DefaultItemStyles(renderer *lipgloss.Renderer) (s list.DefaultItemStyles) {
+	s.NormalTitle = renderer.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
 		Padding(0, 0, 0, 2) //nolint:mnd
 
 	s.NormalDesc = s.NormalTitle.
-		Foreground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"})
+		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"})
 
-	s.SelectedTitle = lipgloss.NewStyle().
+	s.SelectedTitle = renderer.NewStyle().
 		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"}).
-		Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#ffffff"}).
+		BorderForeground(lipgloss.AdaptiveColor{Light: "#F793FF", Dark: "#AD58B4"}).
+		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}).
 		Padding(0, 0, 0, 1)
 
 	s.SelectedDesc = s.SelectedTitle.
-		Foreground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"})
+		Foreground(lipgloss.AdaptiveColor{Light: "#F793FF", Dark: "#AD58B4"})
 
-	s.DimmedTitle = lipgloss.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"}).
+	s.DimmedTitle = renderer.NewStyle().
+		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
 		Padding(0, 0, 0, 2) //nolint:mnd
 
 	s.DimmedDesc = s.DimmedTitle.
-		Foreground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"})
+		Foreground(lipgloss.AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"})
 
-	s.FilterMatch = lipgloss.NewStyle().Underline(true)
+	s.FilterMatch = renderer.NewStyle().Underline(true)
 
 	return s
 }

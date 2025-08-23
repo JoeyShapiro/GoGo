@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -115,7 +114,6 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// pty, _, _ := s.Pty()
 
 	renderer := bubbletea.MakeRenderer(s)
-	fmt.Println(renderer.HasDarkBackground())
 	// txtStyle := renderer.NewStyle()
 
 	// gameId := uuid.New().String()
@@ -147,7 +145,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// 	GameId:   gameId,
 	// }
 
-	m := newModel()
+	m := newModel(renderer)
 
 	// game.Players++
 	// game.PlayerConns = append(game.PlayerConns, &m.Conn)
@@ -182,6 +180,7 @@ func NewGame(id string, db *sql.DB) Game {
 	_, err := db.Exec("INSERT INTO games (id, bsize, white, black, creation) VALUES (?, ?, ?, ?, ?)",
 		id, BOARD_SIZE, "White", "Black", time.Now().UTC().Unix())
 	if err != nil {
+		log.Error("Failed to create game in database", "error", err)
 		return Game{}
 	}
 

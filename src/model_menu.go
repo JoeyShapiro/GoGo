@@ -14,6 +14,7 @@ type ModelMenu struct {
 	width        int
 	height       int
 	txtStyle     lipgloss.Style
+	renderer     *lipgloss.Renderer
 	Id           int
 	list         list.Model
 	keys         *listKeyMap
@@ -23,15 +24,10 @@ type ModelMenu struct {
 var (
 	appStyle = lipgloss.NewStyle().Padding(1, 2)
 
-	// TODO this is set to servers color
 	titleStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#000000")).
 			Background(lipgloss.Color("#25A065")).
 			Padding(0, 1)
-
-	statusMessageStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).
-				Render
 )
 
 type item struct {
@@ -66,13 +62,11 @@ func newListKeyMap() *listKeyMap {
 	}
 }
 
-func newModel() ModelMenu {
+func newModel(renderer *lipgloss.Renderer) ModelMenu {
 	var (
 		delegateKeys = newDelegateKeyMap()
 		listKeys     = newListKeyMap()
 	)
-
-	fmt.Println(lipgloss.HasDarkBackground()) // true on dark mode
 
 	// Make initial list of items
 	items := []list.Item{}
@@ -84,7 +78,7 @@ func newModel() ModelMenu {
 	}
 
 	// Setup list
-	delegate := newItemDelegate(delegateKeys)
+	delegate := newItemDelegate(delegateKeys, renderer)
 	gamesList := list.New(items, delegate, 0, 0)
 	gamesList.Title = "Current Games"
 	gamesList.Styles.Title = titleStyle
@@ -97,6 +91,7 @@ func newModel() ModelMenu {
 	}
 
 	return ModelMenu{
+		renderer:     renderer,
 		list:         gamesList,
 		keys:         listKeys,
 		delegateKeys: delegateKeys,
@@ -127,6 +122,10 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, m.keys.createGame):
+			statusMessageStyle := m.renderer.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).
+				Render
+
 			m.delegateKeys.join.SetEnabled(true)
 			newItem := item{
 				title:       "New Item",
