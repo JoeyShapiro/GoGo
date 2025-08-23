@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -30,6 +31,7 @@ const (
 )
 
 // TODO add more games some way, then interact with them
+// TODO handle higher colors
 
 var (
 	games map[string]*Game
@@ -110,47 +112,47 @@ func initdb(db *sql.DB) error {
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// This should never fail, as we are using the activeterm middleware.
-	pty, _, _ := s.Pty()
+	// pty, _, _ := s.Pty()
 
 	renderer := bubbletea.MakeRenderer(s)
-	txtStyle := renderer.NewStyle()
+	fmt.Println(renderer.HasDarkBackground())
+	// txtStyle := renderer.NewStyle()
 
-	gameId := uuid.New().String()
-	game, exists := games[gameId]
-	if !exists {
-		log.Error("Game not found", "game_id", gameId)
-		return nil, []tea.ProgramOption{tea.WithAltScreen()}
-	}
+	// gameId := uuid.New().String()
+	// game, exists := games[gameId]
+	// if !exists {
+	// 	log.Error("Game not found", "game_id", gameId)
+	// 	return nil, []tea.ProgramOption{tea.WithAltScreen()}
+	// }
 
-	var piece Cell
-	switch game.Players {
-	case 0:
-		piece = White
-	case 1:
-		piece = Black
-	default:
-		log.Error("Too many players connected", "players", game.Players)
-		return nil, []tea.ProgramOption{tea.WithAltScreen()}
-	}
+	// var piece Cell
+	// switch game.Players {
+	// case 0:
+	// 	piece = White
+	// case 1:
+	// 	piece = Black
+	// default:
+	// 	log.Error("Too many players connected", "players", game.Players)
+	// 	return nil, []tea.ProgramOption{tea.WithAltScreen()}
+	// }
 
-	m := ModelGame{
-		txtStyle: txtStyle,
-		term:     pty.Term,
-		width:    pty.Window.Width,
-		height:   pty.Window.Height,
-		Player:   piece,
-		Conn:     make(chan tea.Msg, 1),
-		Id:       game.Players,
-		GameId:   gameId,
-	}
+	// m := ModelGame{
+	// 	txtStyle: txtStyle,
+	// 	term:     pty.Term,
+	// 	width:    pty.Window.Width,
+	// 	height:   pty.Window.Height,
+	// 	Player:   piece,
+	// 	Conn:     make(chan tea.Msg, 1),
+	// 	Id:       game.Players,
+	// 	GameId:   gameId,
+	// }
 
-	game.Players++
-	game.PlayerConns = append(game.PlayerConns, &m.Conn)
+	m := newModel()
+
+	// game.Players++
+	// game.PlayerConns = append(game.PlayerConns, &m.Conn)
 
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
-}
-
-type ModelMenu struct {
 }
 
 type Game struct {
