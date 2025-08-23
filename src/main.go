@@ -245,3 +245,7 @@ type EndMsg struct {
 	GameId string
 	Winner Cell
 }
+
+type JoinMsg struct {
+	GameId string
+}

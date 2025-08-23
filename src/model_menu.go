@@ -189,13 +189,16 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				description: "This is a new item.",
 			}
 			insCmd := m.list.InsertItem(0, newItem)
-			statusCmd := m.list.NewStatusMessage(statusMessageStyle("Added " + newItem.Title()))
+			statusCmd := m.list.NewStatusMessage(statusMessageStyle("Created " + newItem.Title()))
 			return m, tea.Batch(insCmd, statusCmd)
 
 		case key.Matches(msg, m.keys.refreshGames):
 			fmt.Println("Refreshing games...")
 			return m, nil
 		}
+
+	case JoinMsg:
+		fmt.Println("Joining game:", msg.GameId)
 	}
 
 	// This will also call our delegate's update function.

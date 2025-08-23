@@ -24,10 +24,11 @@ func newItemDelegate(keys *delegateKeyMap, renderer *lipgloss.Renderer) list.Def
 		case tea.KeyMsg:
 			switch {
 			case key.Matches(msg, keys.join):
-				statusMessageStyle := lipgloss.NewStyle().
-					Foreground(lipgloss.AdaptiveColor{Light: "#00623eff", Dark: "#04B575"}).
-					Render
-				return m.NewStatusMessage(statusMessageStyle("You chose " + title))
+				return func() tea.Msg {
+					return JoinMsg{
+						GameId: title,
+					}
+				}
 			}
 		}
 
