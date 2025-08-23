@@ -18,7 +18,6 @@ type ModelMenu struct {
 	width        int
 	height       int
 	txtStyle     lipgloss.Style
-	renderer     *lipgloss.Renderer
 	Id           int
 	list         list.Model
 	keys         *listKeyMap
@@ -63,6 +62,8 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 		listKeys     = newListKeyMap()
 	)
 
+	txtStyle := renderer.NewStyle()
+
 	// Make initial list of items
 	items := []list.Item{}
 	for _, game := range games {
@@ -91,7 +92,7 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 	}
 
 	return ModelMenu{
-		renderer:     renderer,
+		txtStyle:     txtStyle,
 		list:         gamesList,
 		keys:         listKeys,
 		delegateKeys: delegateKeys,
@@ -164,7 +165,7 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		h, v := m.renderer.NewStyle().Padding(1, 2).GetFrameSize()
+		h, v := m.txtStyle.Padding(1, 2).GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 
 	case tea.KeyMsg:
@@ -179,9 +180,7 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, m.keys.createGame):
-			statusMessageStyle := m.renderer.NewStyle().
-				Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).
-				Render
+			statusMessageStyle := m.txtStyle.Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).Render
 
 			m.delegateKeys.join.SetEnabled(true)
 			newItem := item{
@@ -210,5 +209,5 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ModelMenu) View() string {
-	return m.renderer.NewStyle().Padding(1, 2).Render(m.list.View())
+	return m.txtStyle.Padding(1, 2).Render(m.list.View())
 }
