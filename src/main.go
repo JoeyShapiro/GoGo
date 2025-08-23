@@ -114,41 +114,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// pty, _, _ := s.Pty()
 
 	renderer := bubbletea.MakeRenderer(s)
-	// txtStyle := renderer.NewStyle()
-
-	// gameId := uuid.New().String()
-	// game, exists := games[gameId]
-	// if !exists {
-	// 	log.Error("Game not found", "game_id", gameId)
-	// 	return nil, []tea.ProgramOption{tea.WithAltScreen()}
-	// }
-
-	// var piece Cell
-	// switch game.Players {
-	// case 0:
-	// 	piece = White
-	// case 1:
-	// 	piece = Black
-	// default:
-	// 	log.Error("Too many players connected", "players", game.Players)
-	// 	return nil, []tea.ProgramOption{tea.WithAltScreen()}
-	// }
-
-	// m := ModelGame{
-	// 	txtStyle: txtStyle,
-	// 	term:     pty.Term,
-	// 	width:    pty.Window.Width,
-	// 	height:   pty.Window.Height,
-	// 	Player:   piece,
-	// 	Conn:     make(chan tea.Msg, 1),
-	// 	Id:       game.Players,
-	// 	GameId:   gameId,
-	// }
-
 	m := newModel(renderer)
-
-	// game.Players++
-	// game.PlayerConns = append(game.PlayerConns, &m.Conn)
 
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
 }

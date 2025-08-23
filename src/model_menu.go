@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 )
 
 const (
@@ -198,6 +199,41 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case JoinMsg:
 		fmt.Println("Joining game:", msg.GameId)
+
+		game, exists := games[msg.GameId]
+		if !exists {
+			log.Error("Game not found", "game_id", msg.GameId)
+			m.list.NewStatusMessage(m.txtStyle.Render("Game not found"))
+			return m, nil
+		}
+
+		var piece Cell
+		switch game.Players {
+		case 0:
+			piece = White
+		case 1:
+			piece = Black
+		default:
+			// show status message
+			m.list.NewStatusMessage(m.txtStyle.Render("Too many players connected"))
+			return m, nil
+		}
+
+		mGame := ModelGame{
+			txtStyle: m.txtStyle,
+			term:     m.term,
+			width:    m.width,
+			height:   m.height,
+			Player:   piece,
+			Conn:     make(chan tea.Msg, 1),
+			Id:       game.Players,
+			GameId:   msg.GameId,
+		}
+
+		game.Players++
+		game.PlayerConns = append(game.PlayerConns, &mGame.Conn)
+
+		return mGame, nil
 	}
 
 	// This will also call our delegate's update function.
