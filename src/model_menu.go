@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/google/uuid"
 )
 
 const (
@@ -23,6 +24,7 @@ type ModelMenu struct {
 	list         list.Model
 	keys         *listKeyMap
 	delegateKeys *delegateKeyMap
+	ModelCreate  ModelCreate
 }
 
 type item struct {
@@ -48,7 +50,7 @@ func newListKeyMap() *listKeyMap {
 		),
 		createGame: key.NewBinding(
 			key.WithKeys(" "),
-			key.WithHelp("C", "create game"),
+			key.WithHelp(" ", "create game"),
 		),
 		refreshGames: key.NewBinding(
 			key.WithKeys("R"),
@@ -162,6 +164,13 @@ func (m ModelMenu) Init() tea.Cmd {
 }
 
 func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	_, ok := msg.(CreateMsg)
+	if m.ModelCreate.Id != "" && !ok {
+		updatedModel, cmd := m.ModelCreate.Update(msg)
+		m.ModelCreate = updatedModel.(ModelCreate)
+		return m, cmd
+	}
+
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -181,21 +190,20 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case key.Matches(msg, m.keys.createGame):
-			statusMessageStyle := m.txtStyle.Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).Render
-
 			m.delegateKeys.join.SetEnabled(true)
-			newItem := item{
-				title:       "New Item",
-				description: "This is a new item.",
-			}
-			insCmd := m.list.InsertItem(0, newItem)
-			statusCmd := m.list.NewStatusMessage(statusMessageStyle("Created " + newItem.Title()))
-			return m, tea.Batch(insCmd, statusCmd)
+
+			m.ModelCreate = ModelCreate{Id: uuid.New().String()}
+
+			return m, m.ModelCreate.Init()
 
 		case key.Matches(msg, m.keys.refreshGames):
 			fmt.Println("Refreshing games...")
 			return m, nil
 		}
+
+	case CreateMsg:
+		m.ModelCreate.Id = ""
+		events <- msg
 
 	case JoinMsg:
 		fmt.Println("Joining game:", msg.GameId)
@@ -245,5 +253,9 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ModelMenu) View() string {
-	return m.txtStyle.Padding(1, 2).Render(m.list.View())
+	if m.ModelCreate.Id != "" {
+		return m.ModelCreate.View()
+	} else {
+		return m.txtStyle.Padding(1, 2).Render(m.list.View())
+	}
 }

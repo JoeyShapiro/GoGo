@@ -29,11 +29,13 @@ const (
 	port = "23234"
 )
 
-// TODO add more games some way, then interact with them
+// TODO handle starting player
 // TODO handle higher colors
+// TODO could add custom colors, but just use color scheme instead. best idea
 
 var (
-	games map[string]*Game
+	games  map[string]*Game
+	events chan tea.Msg
 )
 
 //go:embed gogo.sql
@@ -56,6 +58,8 @@ func main() {
 	game := NewGame(uuid, db)
 	games[uuid] = &game
 
+	events = make(chan tea.Msg, 10)
+
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
@@ -71,7 +75,17 @@ func main() {
 
 	go func() {
 		for {
-			msg := <-game.Conn
+			// handle server events
+			msg := <-events
+			switch msg := msg.(type) {
+			case CreateMsg:
+				log.Info("Creating game:", "id", msg.GameId)
+				newGame := NewGame(msg.GameId, db)
+				games[msg.GameId] = &newGame
+			}
+
+			// handle game events
+			msg = <-game.Conn
 			switch msg := msg.(type) {
 			case SendMsg:
 				for i := range game.Players {
@@ -214,4 +228,9 @@ type EndMsg struct {
 
 type JoinMsg struct {
 	GameId string
+}
+
+type CreateMsg struct {
+	GameId    string
+	AgainstAI bool
 }
