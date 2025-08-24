@@ -156,8 +156,6 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		events <- msg
 
 	case JoinMsg:
-		fmt.Println("Joining game:", msg.GameId)
-
 		game, exists := games[msg.GameId]
 		if !exists {
 			log.Error("Game not found", "game_id", msg.GameId)
@@ -190,6 +188,8 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		game.Players++
 		game.PlayerConns = append(game.PlayerConns, &mGame.Conn)
+
+		log.Info("Player joined game", "game_id", msg.GameId, "player_id", mGame.Id)
 
 		return mGame, nil
 	}

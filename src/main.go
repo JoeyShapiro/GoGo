@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
@@ -30,8 +28,8 @@ const (
 )
 
 // TODO handle starting player
-// TODO handle higher colors
 // TODO could add custom colors, but just use color scheme instead. best idea
+// TODO auto update game list
 
 var (
 	games  map[string]*Game
@@ -52,12 +50,8 @@ func main() {
 	if err := initdb(db); err != nil {
 		log.Fatal("Failed to initialize database", "error", err)
 	}
+
 	games = make(map[string]*Game)
-
-	uuid := uuid.New().String()
-	game := NewGame(uuid, db)
-	games[uuid] = &game
-
 	events = make(chan tea.Msg, 10)
 
 	s, err := wish.NewServer(
@@ -85,16 +79,18 @@ func main() {
 			}
 
 			// handle game events
-			msg = <-game.Conn
-			switch msg := msg.(type) {
-			case SendMsg:
-				for i := range game.Players {
-					if i != msg.Id {
-						*game.PlayerConns[i] <- SendMsg{Id: i}
+			for _, game := range games {
+				msg = <-game.Conn
+				switch msg := msg.(type) {
+				case SendMsg:
+					for i := range game.Players {
+						if i != msg.Id {
+							*game.PlayerConns[i] <- SendMsg{Id: i}
+						}
 					}
+				default:
+					log.Warn("Unknown message type", "msg", msg)
 				}
-			default:
-				log.Warn("Unknown message type", "msg", msg)
 			}
 		}
 	}()
