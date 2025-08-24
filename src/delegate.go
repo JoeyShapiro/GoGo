@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func newItemDelegate(keys *delegateKeyMap, renderer *lipgloss.Renderer) list.DefaultDelegate {
+func newItemDelegate(keys *delegateKeyMap, txtStyle lipgloss.Style) list.DefaultDelegate {
 	d := list.NewDefaultDelegate()
-	d.Styles = DefaultItemStyles(renderer)
+	d.Styles = DefaultItemStyles(txtStyle)
 
 	d.UpdateFunc = func(msg tea.Msg, m *list.Model) tea.Cmd {
 		var title string
@@ -48,15 +48,15 @@ func newItemDelegate(keys *delegateKeyMap, renderer *lipgloss.Renderer) list.Def
 	return d
 }
 
-func DefaultItemStyles(renderer *lipgloss.Renderer) (s list.DefaultItemStyles) {
-	s.NormalTitle = renderer.NewStyle().
+func DefaultItemStyles(txtStyle lipgloss.Style) (s list.DefaultItemStyles) {
+	s.NormalTitle = txtStyle.
 		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
 		Padding(0, 0, 0, 2) //nolint:mnd
 
 	s.NormalDesc = s.NormalTitle.
 		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"})
 
-	s.SelectedTitle = renderer.NewStyle().
+	s.SelectedTitle = txtStyle.
 		Border(lipgloss.NormalBorder(), false, false, false, true).
 		BorderForeground(lipgloss.AdaptiveColor{Light: "#F793FF", Dark: "#AD58B4"}).
 		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}).
@@ -65,14 +65,14 @@ func DefaultItemStyles(renderer *lipgloss.Renderer) (s list.DefaultItemStyles) {
 	s.SelectedDesc = s.SelectedTitle.
 		Foreground(lipgloss.AdaptiveColor{Light: "#F793FF", Dark: "#AD58B4"})
 
-	s.DimmedTitle = renderer.NewStyle().
+	s.DimmedTitle = txtStyle.
 		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
 		Padding(0, 0, 0, 2) //nolint:mnd
 
 	s.DimmedDesc = s.DimmedTitle.
 		Foreground(lipgloss.AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"})
 
-	s.FilterMatch = renderer.NewStyle().Underline(true)
+	s.FilterMatch = txtStyle.Underline(true)
 
 	return s
 }

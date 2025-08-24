@@ -77,15 +77,15 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 	}
 
 	// Setup list
-	delegate := newItemDelegate(delegateKeys, renderer)
+	delegate := newItemDelegate(delegateKeys, txtStyle)
 	gamesList := list.New(items, delegate, 0, 0)
 	gamesList.Title = "Current Games"
 	gamesList.SetShowStatusBar(false)
-	gamesList.Styles = listDefaultStyles(renderer)
-	gamesList.Styles.Title = renderer.NewStyle().
+	gamesList.Styles = listDefaultStyles(txtStyle)
+	gamesList.Styles.Title = txtStyle.
 		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
 		Padding(0, 1)
-	gamesList.Help.Styles.ShortKey = renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
+	gamesList.Help.Styles.ShortKey = txtStyle.Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
 	gamesList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			listKeys.togglePagination,
@@ -100,63 +100,6 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 		keys:         listKeys,
 		delegateKeys: delegateKeys,
 	}
-}
-
-func listDefaultStyles(r *lipgloss.Renderer) (s list.Styles) {
-	verySubduedColor := lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
-	subduedColor := lipgloss.AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"}
-
-	s.TitleBar = r.NewStyle().Padding(0, 0, 1, 2) //nolint:mnd
-
-	s.Title = r.NewStyle().
-		Background(lipgloss.Color("62")).
-		Foreground(lipgloss.Color("230")).
-		Padding(0, 1)
-
-	s.Spinner = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#8E8E8E", Dark: "#747373"})
-
-	s.FilterPrompt = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
-
-	s.FilterCursor = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"})
-
-	s.DefaultFilterCharacterMatch = r.NewStyle().Underline(true)
-
-	s.StatusBar = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
-		Padding(0, 0, 1, 2) //nolint:mnd
-
-	s.StatusEmpty = r.NewStyle().Foreground(subduedColor)
-
-	s.StatusBarActiveFilter = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
-
-	s.StatusBarFilterCount = r.NewStyle().Foreground(verySubduedColor)
-
-	s.NoItems = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#909090", Dark: "#626262"})
-
-	s.ArabicPagination = r.NewStyle().Foreground(subduedColor)
-
-	s.PaginationStyle = r.NewStyle().PaddingLeft(2) //nolint:mnd
-
-	s.HelpStyle = r.NewStyle().Padding(1, 0, 0, 2) //nolint:mnd
-
-	s.ActivePaginationDot = r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#847A85", Dark: "#979797"}).
-		SetString(bullet)
-
-	s.InactivePaginationDot = r.NewStyle().
-		Foreground(verySubduedColor).
-		SetString(bullet)
-
-	s.DividerDot = r.NewStyle().
-		Foreground(verySubduedColor).
-		SetString(" " + bullet + " ")
-
-	return s
 }
 
 func (m ModelMenu) Init() tea.Cmd {
@@ -197,8 +140,15 @@ func (m ModelMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.ModelCreate.Init()
 
 		case key.Matches(msg, m.keys.refreshGames):
-			fmt.Println("Refreshing games...")
-			return m, nil
+			items := []list.Item{}
+			for _, game := range games {
+				items = append(items, item{
+					title:       game.Id,
+					description: fmt.Sprintf("Players: %d; Turns: %d; Size: %d", game.Players, len(game.Moves), game.BoardSize),
+				})
+			}
+
+			return m, m.list.SetItems(items)
 		}
 
 	case CreateMsg:
@@ -258,4 +208,61 @@ func (m ModelMenu) View() string {
 	} else {
 		return m.txtStyle.Padding(1, 2).Render(m.list.View())
 	}
+}
+
+func listDefaultStyles(txtStyle lipgloss.Style) (s list.Styles) {
+	verySubduedColor := lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
+	subduedColor := lipgloss.AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"}
+
+	s.TitleBar = txtStyle.Padding(0, 0, 1, 2) //nolint:mnd
+
+	s.Title = txtStyle.
+		Background(lipgloss.Color("62")).
+		Foreground(lipgloss.Color("230")).
+		Padding(0, 1)
+
+	s.Spinner = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#8E8E8E", Dark: "#747373"})
+
+	s.FilterPrompt = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
+
+	s.FilterCursor = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"})
+
+	s.DefaultFilterCharacterMatch = txtStyle.Underline(true)
+
+	s.StatusBar = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
+		Padding(0, 0, 1, 2) //nolint:mnd
+
+	s.StatusEmpty = txtStyle.Foreground(subduedColor)
+
+	s.StatusBarActiveFilter = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+
+	s.StatusBarFilterCount = txtStyle.Foreground(verySubduedColor)
+
+	s.NoItems = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#909090", Dark: "#626262"})
+
+	s.ArabicPagination = txtStyle.Foreground(subduedColor)
+
+	s.PaginationStyle = txtStyle.PaddingLeft(2) //nolint:mnd
+
+	s.HelpStyle = txtStyle.Padding(1, 0, 0, 2) //nolint:mnd
+
+	s.ActivePaginationDot = txtStyle.
+		Foreground(lipgloss.AdaptiveColor{Light: "#847A85", Dark: "#979797"}).
+		SetString(bullet)
+
+	s.InactivePaginationDot = txtStyle.
+		Foreground(verySubduedColor).
+		SetString(bullet)
+
+	s.DividerDot = txtStyle.
+		Foreground(verySubduedColor).
+		SetString(" " + bullet + " ")
+
+	return s
 }
