@@ -45,16 +45,16 @@ type listKeyMap struct {
 func newListKeyMap() *listKeyMap {
 	return &listKeyMap{
 		togglePagination: key.NewBinding(
-			key.WithKeys("P"),
-			key.WithHelp("P", "toggle pagination"),
+			key.WithKeys("p"),
+			key.WithHelp("p", "toggle pagination"),
 		),
 		createGame: key.NewBinding(
 			key.WithKeys(" "),
-			key.WithHelp(" ", "create game"),
+			key.WithHelp("space", "create game"),
 		),
 		refreshGames: key.NewBinding(
-			key.WithKeys("R"),
-			key.WithHelp("R", "refresh games"),
+			key.WithKeys("r"),
+			key.WithHelp("r", "refresh games"),
 		),
 	}
 }
@@ -86,6 +86,7 @@ func newModel(renderer *lipgloss.Renderer) ModelMenu {
 		Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
 		Padding(0, 1)
 	gamesList.Help.Styles.ShortKey = txtStyle.Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
+	gamesList.Help.Styles.FullKey = txtStyle.Foreground(lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"})
 	gamesList.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			listKeys.togglePagination,

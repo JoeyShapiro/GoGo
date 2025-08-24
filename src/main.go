@@ -18,6 +18,7 @@ import (
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/logging"
+	"golang.org/x/exp/rand"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -75,11 +76,53 @@ func main() {
 				switch msg := msg.(type) {
 				case CreateMsg:
 					log.Info("Creating game:", "id", msg.GameId)
-					newGame := NewGame(msg.GameId, db)
+					newGame := NewGame(msg.GameId, msg.Opponent, db)
+
+					// wanted to create a shell, so there is no difference between a player
+					// but this is good enough. need something. and can still do that
+					if msg.Opponent != OpponentHuman {
+						newGame.Players++
+						newGame.PlayerConns = append(newGame.PlayerConns, nil)
+					}
+
 					games[msg.GameId] = &newGame
 				}
 			default:
 				// No server events, continue
+			}
+
+			// handle computer moves
+			for _, game := range games {
+				// not a fan of this style. but cheaper than giving each comp a chan
+				// an extra list with all comps is just this, but with more steps
+				// this is still more separated than some other ideas i had
+				if game.Opponent != OpponentHuman &&
+					game.Player == White {
+
+					// make a move
+					game.Cursor = rand.Intn(BOARD_SIZE * BOARD_SIZE)
+
+					// set the comps move
+					game.Board[game.Cursor] = game.Player
+					game.Moves = append(game.Moves, Move{
+						Turn:   len(game.Moves),
+						Player: game.Player,
+						NRow:   game.Cursor / BOARD_SIZE,
+						NCol:   game.Cursor % BOARD_SIZE,
+						Ctime:  uint64(time.Now().UTC().Unix()),
+					})
+
+					// end the turn
+					game.Last = game.Cursor
+					if game.Player == White {
+						game.Player = Black
+					} else {
+						game.Player = White
+					}
+
+					// notify the player
+					game.Conn <- SendMsg{Id: 0}
+				}
 			}
 
 			// handle game events (non-blocking)
@@ -89,7 +132,7 @@ func main() {
 					switch msg := msg.(type) {
 					case SendMsg:
 						for i := range game.Players {
-							if i != msg.Id {
+							if i != msg.Id && game.PlayerConns[i] != nil {
 								*game.PlayerConns[i] <- SendMsg{Id: i}
 							}
 						}
@@ -152,7 +195,15 @@ type Game struct {
 	Conn          chan tea.Msg
 	PlayerConns   []*chan tea.Msg
 	Moves         []Move
+	Opponent      OpponentType
 }
+
+type OpponentType int
+
+const (
+	OpponentComp OpponentType = iota
+	OpponentHuman
+)
 
 type Move struct {
 	Turn   int
@@ -162,7 +213,7 @@ type Move struct {
 	Ctime  uint64
 }
 
-func NewGame(id string, db *sql.DB) Game {
+func NewGame(id string, opponent OpponentType, db *sql.DB) Game {
 	_, err := db.Exec("INSERT INTO games (id, bsize, white, black, creation) VALUES (?, ?, ?, ?, ?)",
 		id, BOARD_SIZE, "White", "Black", time.Now().UTC().Unix())
 	if err != nil {
@@ -180,6 +231,7 @@ func NewGame(id string, db *sql.DB) Game {
 		BlackCaptures: 0,
 		Players:       0,
 		Conn:          make(chan tea.Msg, 3),
+		Opponent:      opponent,
 	}
 }
 
@@ -237,6 +289,6 @@ type JoinMsg struct {
 }
 
 type CreateMsg struct {
-	GameId    string
-	AgainstAI bool
+	GameId   string
+	Opponent OpponentType
 }

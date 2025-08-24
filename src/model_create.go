@@ -35,8 +35,8 @@ func (m ModelCreate) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			id := m.Id
 			return m, func() tea.Msg {
 				return CreateMsg{
-					GameId:    id,
-					AgainstAI: m.cursor == 0,
+					GameId:   id,
+					Opponent: OpponentType(m.cursor),
 				}
 			}
 
