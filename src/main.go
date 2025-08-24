@@ -69,29 +69,39 @@ func main() {
 
 	go func() {
 		for {
-			// handle server events
-			msg := <-events
-			switch msg := msg.(type) {
-			case CreateMsg:
-				log.Info("Creating game:", "id", msg.GameId)
-				newGame := NewGame(msg.GameId, db)
-				games[msg.GameId] = &newGame
+			// handle server events (non-blocking)
+			select {
+			case msg := <-events:
+				switch msg := msg.(type) {
+				case CreateMsg:
+					log.Info("Creating game:", "id", msg.GameId)
+					newGame := NewGame(msg.GameId, db)
+					games[msg.GameId] = &newGame
+				}
+			default:
+				// No server events, continue
 			}
 
-			// handle game events
+			// handle game events (non-blocking)
 			for _, game := range games {
-				msg = <-game.Conn
-				switch msg := msg.(type) {
-				case SendMsg:
-					for i := range game.Players {
-						if i != msg.Id {
-							*game.PlayerConns[i] <- SendMsg{Id: i}
+				select {
+				case msg := <-game.Conn:
+					switch msg := msg.(type) {
+					case SendMsg:
+						for i := range game.Players {
+							if i != msg.Id {
+								*game.PlayerConns[i] <- SendMsg{Id: i}
+							}
 						}
+					default:
+						log.Warn("Unknown message type", "msg", msg)
 					}
 				default:
-					log.Warn("Unknown message type", "msg", msg)
+					// No message for this game, continue to next game
 				}
 			}
+
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 
